@@ -124,7 +124,8 @@ int main() {
 
 	delete generatedNumbersPlayer;
 	delete drawnNumbers;
-
+	delete mutex;
+	
 	system("pause");
 
 	return 0;
