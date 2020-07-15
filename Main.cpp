@@ -5,7 +5,6 @@
 #include <stdlib.h>   
 #include <random>
 #include <string>
-#include <condition_variable>
 #include <fstream>
 
 #include "LockGuardMy.h"
@@ -115,13 +114,19 @@ bool writeDataToTxt(std::string fileName, int score) {
 }
 
 int readDataFromTxt(std::string fileName) {
-	int score;
-	std::fstream file;
-	file.open(fileName, std::ios::in);
-	file >> score;
-	file.close();
-
-	return score;
+	try {
+		int score;
+		std::fstream file;
+		file.open(fileName, std::ios::in);
+		file >> score;
+		file.close();
+		return score;
+	}
+	catch (std::exception& e) {
+		std::cout << "Open file ERROR" << std::endl;
+		return 0;
+	}
+	return 0;
 }
 
 bool checkHighScore(int score) {
