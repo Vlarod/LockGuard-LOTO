@@ -6,6 +6,8 @@
 #include <random>
 #include <string>
 #include <condition_variable>
+#include <fstream>
+
 #include "LockGuardMy.h"
 
 #define LOWER_LIMIT 0
@@ -13,13 +15,15 @@
 #define NUMBER_OF_NUMBERS 5
 #define NOT_FOUND 0
 #define OFFSET 1
-
+#define TXT_FILE_NAME "highscore.txt"
 
 std::mutex *mutex;
 std::map<int, int> * generatedNumbersPlayer;
 std::map<int, int> * drawnNumbers;
 std::minstd_rand0 generator;
 int score = 0;
+int highScore;
+bool done = false;
 
 void printGeneratedNumbers(std::map<int, int> * generatedNumbers, std::string title){
 	std::cout << title;
@@ -81,7 +85,7 @@ void getResultsSecondChance() {
 
 void enterNumbersUser() {
 
-	std::cout << "-----WELCOME in game LOTO 5 from 25-----\nWrite 5 numbers from range 0 - 25!\n";
+	std::cout << "-----WELCOME in game LOTO 5 from 25-----\nWrite 5 numbers from range 0 - 25!\nHIGH SCORE: " + std::to_string(highScore) + "\n";
 	int currentnumber;
 	for (int i = 0; i < NUMBER_OF_NUMBERS; i++) {
 		std::cin >> currentnumber;
@@ -96,36 +100,89 @@ void enterNumbersUser() {
 	}
 }
 
+bool writeDataToTxt(std::string fileName, int score) {
+	try {
+		std::ofstream file;
+		file.open(fileName);
+		file << std::to_string(score);
+		file.close();
+		return true;
+	}
+	catch (std::exception& e) {
+		std::cout << "Open file ERROR" << std::endl;
+	}
+	return false;
+}
+
+int readDataFromTxt(std::string fileName) {
+	int score;
+	std::fstream file;
+	file.open(fileName, std::ios::in);
+	file >> score;
+	file.close();
+
+	return score;
+}
+
+bool checkHighScore(int score) {
+	if (score > highScore) {
+		highScore = score;
+		writeDataToTxt(TXT_FILE_NAME, highScore);
+		return true;
+	}
+	return false;
+}
+
 void printResults() {
+
 	printGeneratedNumbers(generatedNumbersPlayer, "\nGenerated numbers for Player: ");
 	printGeneratedNumbers(drawnNumbers, "\n\nDrawn numbers: ");
-	std::cout << "\n\nYour Score: " << score << "\n\n\n";
+	std::cout << "\n\nYour Score: " << score << "\n";
+
+	if (checkHighScore(score) == true)
+		std::cout << "\n\nNEW HIGH SCORE !!! \n\n\n";
 }
 
 int main() {
 	mutex = new std::mutex;
 	generatedNumbersPlayer = new std::map<int, int>();
 	drawnNumbers = new std::map<int, int>();
+	std::string choose;
+	highScore = readDataFromTxt(TXT_FILE_NAME);
+	while (!done) {
+		std::cout << "Enter Any Key for Start game or 0 for Exit\n";
+		std::cin >> choose;
 
-	generator.seed(time(NULL));
-	std::thread enter(enterNumbersUser);
-	std::thread drawnN(generateNumbers, drawnNumbers);
+		if (choose == "0") {
+			done = true;
+			break;
+		}
+		system("CLS");
+		score = 0;
 
-	drawnN.join();
-	enter.join();
+		generatedNumbersPlayer->clear();
+		drawnNumbers->clear();
 
-	std::thread results(getResults);
-	std::thread resultsSecondChance(getResultsSecondChance);
+		generator.seed(time(NULL));
+		std::thread enter(enterNumbersUser);
+		std::thread drawnN(generateNumbers, drawnNumbers);
 
-	results.join();
-	resultsSecondChance.join();
+		drawnN.join();
+		enter.join();
 
-	printResults();
+		std::thread results(getResults);
+		std::thread resultsSecondChance(getResultsSecondChance);
+
+		results.join();
+		resultsSecondChance.join();
+
+		printResults();
+	}
 
 	delete generatedNumbersPlayer;
 	delete drawnNumbers;
-	delete mutex;
-	
+	delete mutex; 
+
 	system("pause");
 
 	return 0;
